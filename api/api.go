@@ -344,8 +344,8 @@ type Config struct {
 	// Datacenter to use. If not provided, the default agent datacenter is used.
 	Datacenter string
 
-	// Transport is the Transport to use for the http client.
-	Transport *http.Transport
+	// Transport is the http.RoundTripper to use for the http client.
+	Transport http.RoundTripper
 
 	// HttpClient is the client to use. Default will be
 	// used if not provided.
@@ -784,7 +784,7 @@ func NewClient(config *Config) (*Client, error) {
 
 // NewHttpClient returns an http client configured with the given Transport and TLS
 // config.
-func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, error) {
+func NewHttpClient(transport http.RoundTripper, tlsConf TLSConfig) (*http.Client, error) {
 	client := &http.Client{
 		Transport: transport,
 	}
@@ -797,14 +797,15 @@ func NewHttpClient(transport *http.Transport, tlsConf TLSConfig) (*http.Client, 
 	// to enable HTTP/2 support on a transport suitable for the API client
 	// library see agent/http_test.go:TestHTTPServer_H2.
 
-	if transport.TLSClientConfig == nil {
+	t, ok := transport.(*http.Transport)
+	if ok && t.TLSClientConfig == nil {
 		tlsClientConfig, err := SetupTLSConfig(&tlsConf)
 
 		if err != nil {
 			return nil, err
 		}
 
-		transport.TLSClientConfig = tlsClientConfig
+		t.TLSClientConfig = tlsClientConfig
 	}
 
 	return client, nil
